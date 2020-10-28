@@ -3,6 +3,12 @@ package helmspray
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strconv"
+	"text/tabwriter"
+	"time"
+
 	"github.com/gemalto/helm-spray/v4/internal/dependencies"
 	"github.com/gemalto/helm-spray/v4/internal/log"
 	"github.com/gemalto/helm-spray/v4/internal/values"
@@ -11,11 +17,6 @@ import (
 	"github.com/gemalto/helm-spray/v4/pkg/util"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	cliValues "helm.sh/helm/v3/pkg/cli/values"
-	"io/ioutil"
-	"os"
-	"strconv"
-	"text/tabwriter"
-	"time"
 )
 
 type Spray struct {
@@ -54,10 +55,11 @@ func (s *Spray) Spray() error {
 		return fmt.Errorf("loading chart \"%s\": %w", s.ChartName, err)
 	}
 
-	mergedValues, updatedChartValuesAsString, err := values.Merge(chart, s.ReuseValues, &s.ValuesOpts, s.Verbose)
+	mergedValues, updatedChartValuesAsString, err := values.Merge(chart, s.ReuseValues, &s.ValuesOpts, s.Verbose, s.Namespace)
 	if err != nil {
-		return fmt.Errorf("merging values: %w", err)
+		return fmt.Errorf("merging values and replace variable : %w", err)
 	}
+
 	if len(updatedChartValuesAsString) > 0 {
 		// Write default values to a temporary file and add it to the list of values files,
 		// for later usage during the calls to helm

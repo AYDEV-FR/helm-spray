@@ -2,14 +2,15 @@ package values
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/gemalto/helm-spray/v4/internal/log"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 var httpProvider = getter.Provider{
@@ -17,7 +18,7 @@ var httpProvider = getter.Provider{
 	New:     getter.NewHTTPGetter,
 }
 
-func Merge(chart *chart.Chart, reuseValues bool, valueOpts *values.Options, verbose bool) (chartutil.Values, string, error) {
+func Merge(chart *chart.Chart, reuseValues bool, valueOpts *values.Options, verbose bool, namespace string) (chartutil.Values, string, error) {
 	var chartValues chartutil.Values
 	var updatedChartValuesAsString string
 	var err error
@@ -29,6 +30,11 @@ func Merge(chart *chart.Chart, reuseValues bool, valueOpts *values.Options, verb
 		if err != nil {
 			return nil, "", fmt.Errorf("processing includes: %w", err)
 		}
+
+		// Replace variable inside values.yaml (before merge...)
+		// It will be usefull to replace and add namespace for an ingress : like app.{{ .Release.Namespace }}.fqdn.fr
+		updatedChartValuesAsString = strings.Replace(updatedChartValuesAsString, "{{ .Release.Namespace }}", namespace, -1)
+
 		updatedChartValues, err := chartutil.ReadValues([]byte(updatedChartValuesAsString))
 		if err != nil {
 			return nil, "", fmt.Errorf("generating updated values after processing of include(s): %w", err)
